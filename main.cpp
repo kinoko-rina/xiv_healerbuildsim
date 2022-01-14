@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <math.h>
 #include <string>
 
@@ -203,7 +204,6 @@ struct Food{
 };
 
 
-
 // マテリアが実際に装着可能かをチェックする
 int MateriaCheck(MateriaData (&m)[11], int m1_num[5], int m2_num[5]){
 
@@ -373,37 +373,82 @@ int MateriaCheck(MateriaData (&m)[11], int m1_num[5], int m2_num[5]){
 	return check;
 }
 
-
 int main(){
 
 	cin.exceptions(ios::failbit);
 
-	Player p_init;
-
-	//食事ぶんの増加
-
+	Equipment equip[11][4]; // 装備
 	Food food[5];
 
-	Equipment equip[11][4]; // 装備
-	int m1_slotnum = 0; // 上位マテリアが嵌る穴の数
-	int m2_slotnum = 0; // 下位マテリアが嵌る穴の数
-	int m1_maxnum[5] = { 0, 0, 0, 0, 0 }; // 上限値を考慮した、ステータスごとの上位マテリアが嵌る穴の数
-	int m2_maxnum[5] = { 0, 0, 0, 0, 0 }; // 上限値を考慮した、ステータスごとの下位マテリアが嵌る穴の数
-	MateriaData equip_m_init[11]; // 部位ごとのマテリア情報 初期値
+	// 装備ファイルの読み込み
+	ifstream equip_file;
+	equip_file.open("equip.txt", ios::in);
+	if (equip_file){
+		string line;
+		while (getline(equip_file, line)){
+			if (line.empty() || line[0] == '#') { 
+				continue;
+			}
+			char t_name[99];
+			int t_area;
+			int t_cri;
+			int t_dh;
+			int t_det;
+			int t_ss;
+			int t_pie;
+			int t_m1slotnum;
+			int t_m2slotnum;
+			int t_statmax;
+			sscanf_s(line.c_str(), "%[^\n,],%d,%d,%d,%d,%d,%d,%d,%d,%d", t_name, sizeof(t_name), &t_area, &t_cri, &t_dh, &t_det, &t_ss, &t_pie, &t_m1slotnum, &t_m2slotnum, &t_statmax);
+			if (t_area >= 11) { continue; } 
+			for (int i = 0; i < 4; i++){
+				if (equip[t_area][i].enable == false){
+					equip[t_area][i].set(t_name, t_area, t_cri, t_dh, t_det, t_ss, t_pie, t_m1slotnum, t_m2slotnum, t_statmax);
+					break;
+				}
+			}
+		}
+	}
+	else{
+		return -1;
+	}
+	equip_file.close();
 
-	int selected_equip[11] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }; //部位ごとに選んだ装備
+	// 食事ファイルの読み込み
+	ifstream food_file;
+	food_file.open("food.txt", ios::in);
+	if (food_file){
+		string line;
+		while (getline(food_file, line)){
+			if (line.empty() || line[0] == '#') {
+				continue;
+			}
+			char t_name[99];
+			double d_cri;
+			double d_dh;
+			double d_det;
+			double d_ss;
+			double d_pie;
+			int max_cri;
+			int max_dh;
+			int max_det;
+			int max_ss;
+			int max_pie;
+			sscanf_s(line.c_str(), "%[^\n,],%lf,%lf,%lf,%lf,%lf,%d,%d,%d,%d,%d", t_name, sizeof(t_name), &d_cri, &d_dh, &d_det, &d_ss, &d_pie, &max_cri, &max_dh, &max_det, &max_ss, &max_pie);
+			for (int i = 0; i < 5; i++){
+				if (food[i].enable == false){
+					food[i].set(t_name, d_cri, d_dh, d_det, d_ss, d_pie, max_cri, max_dh, max_det, max_ss, max_pie);
+					break;
+				}
+			}
+		}
+	}
+	else{
+		return -1;
+	}
+	food_file.close();
 
-	// 最大となる結果を保存するための変数群
-	Player p_max;
-	MateriaData equip_m_max[11];
-	int food_maxnum = 0;
-	double d_max = 0.0;
-	int selected_equip_max[11] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-
-	//food[0].set("なし", 0.0, 0.0, 0.0, 0.0, 0.0, 0, 0, 0, 0, 0);
-	food[0].set("ココナッツコッドチャウダーHQ", 0.1, 0.0, 0.1, 0.0, 0.0, 46, 0, 76, 0, 0);
-	food[1].set("ババロア・オ・シューコンHQ", 0.0, 0.1, 0.1, 0.0, 0.0, 0, 82, 50, 0, 0);
-
+	/*
 	//サブステ順番は0.Cri 1.DH 2.Det 3.SS 4.Pie
 	equip[0][0].set("武器|新式", WEAPON, 0, 0, 0, 253, 177, 3, 2, 253);
 	equip[0][1].set("武器|極　", WEAPON, 177, 0, 253, 0, 0, 2, 0, 253);
@@ -423,6 +468,28 @@ int main(){
 	equip[9][0].set("指1 |新式", LRING, 121, 0, 0, 0, 85, 2, 3, 121);
 	equip[10][0].set("指2 |新式", RRING, 0, 0, 85, 121, 0, 2, 3, 121);
 
+	//food[0].set("なし", 0.0, 0.0, 0.0, 0.0, 0.0, 0, 0, 0, 0, 0);
+	food[0].set("ココナッツコッドチャウダーHQ", 0.1, 0.0, 0.1, 0.0, 0.0, 46, 0, 76, 0, 0);
+	food[1].set("ババロア・オ・シューコンHQ", 0.0, 0.1, 0.1, 0.0, 0.0, 0, 82, 50, 0, 0);
+	*/
+
+	Player p_init;
+
+	int m1_slotnum = 0; // 上位マテリアが嵌る穴の数
+	int m2_slotnum = 0; // 下位マテリアが嵌る穴の数
+	int m1_maxnum[5] = { 0, 0, 0, 0, 0 }; // 上限値を考慮した、ステータスごとの上位マテリアが嵌る穴の数
+	int m2_maxnum[5] = { 0, 0, 0, 0, 0 }; // 上限値を考慮した、ステータスごとの下位マテリアが嵌る穴の数
+	MateriaData equip_m_init[11]; // 部位ごとのマテリア情報 初期値
+	int selected_equip[11] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }; //部位ごとに選んだ装備
+
+	// 最大となる結果を保存するための変数群
+	Player p_max;
+	MateriaData equip_m_max[11];
+	int food_maxnum = 0;
+	double d_max = 0.0;
+	int selected_equip_max[11] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+
+
 	// 装備のパターン数を計算（後のループで使用）
 	int max_equip_pattern = 0;
 	for (int i0 = 0; i0 < 4; i0++){ if (equip[0][i0].enable == false){ break; }
@@ -439,7 +506,9 @@ int main(){
 		max_equip_pattern++;
 	}}}}}}}}}}}
 	
-	// ユーザー入力項目
+
+	// ユーザー入力項目ここから
+
 	// 信仰の必要値　これ以上の信仰を確保するようにする。0の場合、信仰マテリアを0個にするため処理が早くなる
 	int set_min_pie = 0;
 	cout << "信仰(Pie)の必要値を入力。入力値以上の信仰を確保するようにビルドを組みます。" << endl;
@@ -449,6 +518,7 @@ int main(){
 		break;
 	}
 	if (set_min_pie < 0) { set_min_pie = 0; }
+
 	// gcdの最小値　これ以上のgcdになるようにする（早すぎるgcdを防止するためのオプション）0.0の場合は制限なし
 	double set_gcd_limit = 0.0;
 	cout << "GCDの最小値を入力(0.0-2.5)。入力値以上のGCDとなるようにビルドを組みます。" << endl << "（早すぎるGCDを防止したいときに使用してください）" << endl;
@@ -459,6 +529,8 @@ int main(){
 	}
 	if (set_gcd_limit > 2.5) { set_min_pie = 2.5; }
 	else if (set_gcd_limit < 0.0) { set_min_pie = 0.0; }
+
+	// ユーザー入力項目ここまで
 
 
 	// loop開始
@@ -661,7 +733,7 @@ int main(){
 	}
 
 	// 結果の表示
-	cout << endl << endl << "====賢者ビルド:結果表示====" << endl;
+	cout << endl << endl << "====結果表示====" << endl;
 	if (set_min_pie>0){ cout << "追加条件：信仰" << set_min_pie << " 以上" << endl; }
 	if (set_gcd_limit>0){ cout << "追加条件：GCD" << set_gcd_limit << "s 以上" << endl; }
 	cout << "【装備詳細】" << endl;
@@ -696,10 +768,53 @@ int main(){
 		<< "【総合ダメージ倍率】" << p_max.sage_dmg_rate * 100 << "％" << endl;
 
 
-
-
-	int temp;
-	cin >> temp;
+	int if_out = 0;
+	cout << endl  << "output.txtへ結果出力を行いますか？(1で出力を行います)" << endl;
+	while (true){
+		try{ cin >> if_out; }
+		catch (...){ cin.clear(); cin.seekg(0); continue; }
+		break;
+	}
+	if (if_out == 1) {
+		// ファイル出力を行う
+		ofstream fout;
+		fout.open("output.txt");
+			fout << "====結果表示====" << endl;
+			if (set_min_pie>0){ fout << "追加条件：信仰" << set_min_pie << " 以上" << endl; }
+			if (set_gcd_limit>0){ fout << "追加条件：GCD" << set_gcd_limit << "s 以上" << endl; }
+			fout << "【装備詳細】" << endl;
+			for (int i = 0; i < 11; i++){
+				fout << "　" << equip[i][selected_equip_max[i]].name << "|";
+				for (int s = 0; s < 5; s++){
+					if (equip_m_max[i].slotinfo[s] != -1){ 
+						switch (equip_m_max[i].slot[s]){
+							case 0: fout << "武略"; break;
+							case 1: fout << "天眼"; break;
+							case 2: fout << "雄略"; break;
+							case 3: fout << "詠唱"; break;
+							case 4: fout << "信力"; break;
+						}
+						switch (equip_m_max[i].slotinfo[s]){
+							case 1: fout << "ｱﾙﾃﾏ　"; break;
+							case 2: fout << "ｵﾒｶﾞ　"; break;
+						}
+					}
+				}
+				fout << endl;
+			}
+			fout << "【食事】" << food[food_maxnum].name << endl;
+			fout << "【ステータス】" << endl << "　Cri  " << p_max.stat[CRI] << " （クリ率" << p_max.cri_rate * 100 << "％、倍率" << p_max.cri_dmg * 100 << "％）" << endl
+				<< "　DH   " << p_max.stat[DH] << " （DH率" << p_max.dh_rate * 100 << "％）" << endl
+				<< "　意思 " << p_max.stat[DET] << endl
+				<< "　SS   " << p_max.stat[SS] << " （" << "GCD " << p_max.gcd << "s、dot倍率" << p_max.dot_dmg * 100 << "％）" << endl
+				<< "　信仰 " << p_max.stat[PIE] << endl
+				<< "　（マテリア情報）武略ｱﾙﾃﾏx" << m1_nummax[0] << "、天眼ｱﾙﾃﾏx" << m1_nummax[1] << "、雄略ｱﾙﾃﾏx" << m1_nummax[2] << "、詠唱ｱﾙﾃﾏx" << m1_nummax[3] << "、信力ｱﾙﾃﾏx" << m1_nummax[4] << endl
+				<< "　　　　　　　　　武略ｵﾒｶﾞx" << m2_nummax[0] << "、天眼ｵﾒｶﾞx" << m2_nummax[1] << "、雄略ｵﾒｶﾞx" << m2_nummax[2] << "、詠唱ｵﾒｶﾞx" << m2_nummax[3] << "、信力ｵﾒｶﾞx" << m2_nummax[4] << endl
+				<< "　　　　　　　　　マテリアによるステータス：Cri+" << m_stmax[0] << " DH+" << m_stmax[1] << " Det+" << m_stmax[2] << " SS+" << m_stmax[3] << " Pie+" << m_stmax[4] << endl
+				<< "【総合ダメージ倍率】" << p_max.sage_dmg_rate * 100 << "％" << endl;
+		fout.close();
+	}
+	else { return 0; }
 
 
 	return 0;
